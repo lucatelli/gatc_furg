@@ -20,16 +20,23 @@ import os
 Create synthetic galaxies, including in ellipticals and spirals components like bulges, disks and bars.
 '''
 '''
-		The function galaxie() calls a specified profile, to create a synthetic galaxie. 
-		returns an image array
+	The function galaxie() calls a specified profile, to create a synthetic galaxie. 
+	returns an image array
 
 		Some components that can be used to control the intensity of the profile in the galaxy are:
-		ec		exponential contribution to the final galaxy intensity output
-		buc		bulge contribution to the final galaxy intensity output
-		dc 		disk contribution to the final galaxy intensity output
+		
+		ec	exponential contribution to the final galaxy intensity output
+		
+		buc	bulge contribution to the final galaxy intensity output
+		
+		dc 	disk contribution to the final galaxy intensity output
+		
 		barc	bar contribution to the final galaxy intensity output
-		nsc		general sersic profile contribution to the final galaxy intensity output
-		sct		tangent spiral contribution to the final galaxy intensity output
+		
+		nsc	general sersic profile contribution to the final galaxy intensity output
+		
+		sct	tangent spiral contribution to the final galaxy intensity output
+		
 		scth	hyperbolic tangent spiral contribution to the final galaxy intensity output
 
 		It can be created a simple synthetic galaxie in a more easy way simply calling a function.
