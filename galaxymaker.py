@@ -1,11 +1,11 @@
 # !/usr/bin/env python
 # -*- coding: utf-8 -*-
 ##############################################################################
-## This is a main script that runs routines to create synthetic galaxies	##
-## 						Created by Geferson Lucatelli 						##
-##						lucatelli_asph_r2@virgophysics						##
-##																			##
-##		(original version 03.16.2016) (lastest version 04.06.2016)			##
+## This is a main script that runs routines to create synthetic galaxies    ##
+## 			Created by Geferson Lucatelli 			    ##
+##			lucatelli_asph_r2@virgophysics 	 		    ##
+##					  			            ##
+##		(original version 03.16.2016) (lastest version 04.10.2016)  ##
 ##############################################################################
 
 ##############################################################################
