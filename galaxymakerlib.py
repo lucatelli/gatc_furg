@@ -74,7 +74,7 @@ def rscale(r_ef,N=4,size=255):
 def rotation(PA, gal_center,x, y):
 	#convert to radians
 	t=PA*np.pi/180.
-	return ((x-gal_center[1])*np.cos(t) + (y-gal_center[0])*np.sin(t), 
+	return ((x-gal_center[1])*np.cos(t) + (y-gal_center[0])*np.sin(t),\
 	-(x-gal_center[1])*np.sin(t) + (y-gal_center[0])*np.cos(t))
 
 def sersic_profile(In,rn,n,q,c):
@@ -162,7 +162,7 @@ def bulge_profile(Ibu,rbu,nbu,q,c):
 	'''
 	return sersic_profile(Ibu,rbu,nbu,q,c)
 
-def tan_spiral_profile(k,p,AA,NN,phi0,q):
+def tan_spiral_profile(k,p,AA,NN,phi0,q,PA):
 	'''
 		This function, generates a tangent spiral structure
 		Returns an image array 
@@ -188,7 +188,7 @@ def tan_spiral_profile(k,p,AA,NN,phi0,q):
 		create the spiral structure (spiral)
 	'''
 	c=0.0
-	r,x,y=grid(q,c,30)
+	r,x,y=grid(q,c,PA)
 	delta_tan=0.01
 	BB=(1.0)/(np.tanh(phi0/(2.0*NN)))
 	phi_r_tan=2.0*NN*arctan(np.exp(AA/(r**1.0+delta_tan) )/BB)
@@ -199,7 +199,7 @@ def tan_spiral_profile(k,p,AA,NN,phi0,q):
 	# plot_two_profiles(spiral,I_exp)
 	return spiral
 
-def tanh_spiral_profile(k,p,AA,NN,phi0,q):
+def tanh_spiral_profile(k,p,AA,NN,phi0,q,PA):
 	'''
 		This function, generates a hyperbolic tangent spiral structure
 		Returns an image array
@@ -226,7 +226,7 @@ def tanh_spiral_profile(k,p,AA,NN,phi0,q):
 		used to create the spiral structure (spiral)
 	'''
 	c=0.0
-	r,x,y=grid(q,c,30)
+	r,x,y=grid(q,c,PA)
 	delta_tanh=1.0
 	BB=(1.0)/(tanh(phi0/(2.0*NN)))
 	phi_r_tanh=2.0*NN*arctanh(np.exp(AA/(r**1.0+delta_tanh) )/BB)
@@ -265,15 +265,15 @@ like bulges, disks and bars.
 		
 		scth	hyperbolic tangent spiral contribution to the final galaxy intensity output
 '''
-def spiral_galaxie(nsc,In,rn,n,ec,Ie,re,sct,k,p,AA,NN,phi0,barc,Ib,rb,nb,qbar,cbar,q,c):
-	return nsc*sersic_profile(In,rn,n,q,c)+ec*exponential_profile(Ie,re,q,c)+
-	sct*tan_spiral_profile(k,p,AA,NN,phi0,q)+barc*bar_profile(Ib,rb,nb,qbar,cbar)
+def spiral_galaxie(nsc,In,rn,n,ec,Ie,re,sct,k,p,AA,NN,phi0,barc,Ib,rb,nb,qbar,cbar,q,c,PA):
+	return nsc*sersic_profile(In,rn,n,q,c)+ec*exponential_profile(Ie,re,q,c)+\
+	sct*tan_spiral_profile(k,p,AA,NN,phi0,q,PA)+barc*bar_profile(Ib,rb,nb,qbar,cbar)
 
 
 ##############################################################################
 ## DISPLAYING THE RESULTS
 ##############################################################################
-def plot_save_image(image,number_name,nsc,In,rn,n,ec,Ie,re,sct,k,p,AA,NN,phi0,barc,Ib,rb,nb,q,c):
+def plot_save_image(image,number_name,nsc,In,rn,n,ec,Ie,re,sct,k,p,AA,NN,phi0,barc,Ib,rb,nb,qbar,cbar,q,c,PA):
 	fig=plt.figure()
 	ax1=fig.add_subplot(2,2,1)
 	ax1.imshow(((image))**0.2)
@@ -283,8 +283,9 @@ def plot_save_image(image,number_name,nsc,In,rn,n,ec,Ie,re,sct,k,p,AA,NN,phi0,ba
 	ax2.plot(image[len(image)/2,len(image)/2:])
 	ax3=fig.add_subplot(2,2,2)
 	plt.axis('off')
-	ax3.text(0.0, 1.00, r'Galaxy ID:$'+str(1+number_name)+'$', fontsize=12)
+	ax3.text(0.0, 1.10, r'Galaxy ID:$'+str(1+number_name)+'$', fontsize=12)
 	#sersic/bulge parameters
+	ax3.text(0.0, 1.00, r'$PA$='+'$'+str(format(PA,'.2f'))+'$', fontsize=12)
 	ax3.text(0.0, 0.92, r'$q$='+'$'+str(format(q,'.2f'))+'$', fontsize=12)
 	ax3.text(0.0, 0.84, r'$r_n$='+'$'+str(format(rn,'.2f'))+'$', fontsize=12)
 	ax3.text(0.0, 0.76, r'$I_n$='+'$'+str(format(In,'.2f'))+'$', fontsize=12)
@@ -299,17 +300,17 @@ def plot_save_image(image,number_name,nsc,In,rn,n,ec,Ie,re,sct,k,p,AA,NN,phi0,ba
 	#spiral parameters
 	ax3.text(0.0, 0.20, r'$N$='+'$'+str(format(NN,'.2f'))+'$', fontsize=12)
 	ax3.text(0.0, 0.12, r'$\phi_0$='+'$'+str(format(phi0,'.2f'))+'$', fontsize=12)
-	ax3.text(-0.2, 0.04, r'$I(r)='+str(nsc)+'I_{ser}(r)+'+str(ec)+'I_{exp}(r)+'+str(barc)+
-	'I_{bar}(r)+'+str(sct)+'\Theta(\phi(r))$',fontsize=12)
+	ax3.text(-0.2, 0.04, r'$I(r)='+str(format(nsc,'.2f'))+'I_{ser}(r)+'+str(ec)+'I_{exp}(r)+'+str(barc)+\
+	'I_{bar}(r)+'+str(format(sct,'.2f'))+'\Theta(\phi(r))$',fontsize=12)
 	plt.savefig('gal_'+str(1+number_name)+'.jpg',dpi=200)
-	plt.show()
-	# plt.clf()
-	return
+	# plt.show()
+	plt.clf()
+	# return
 
 def plot_image(image):
 	fig=plt.figure()
 	ax1=fig.add_subplot(1,1,1)
-	ax1.imshow(((image)))
+	ax1.imshow(((image))**0.2)
 	plt.show()
 	return
 
@@ -323,7 +324,7 @@ def plot_two_profiles(profile1,profile2):
 	ax=fig.add_subplot(1,1,1,axisbg='white')
 	ax.plot(profile1[len(profile1)/2,len(profile1)/2:],'--k',color='red',label='$I_1$')
 	ax.plot(profile2[len(profile2)/2,len(profile2)/2:],'--k',color='blue',label='$I_2$')
-	ax.plot(profile1[len(profile1)/2,len(profile1)/2:]*profile2[len(profile2)/2,
+	ax.plot(profile1[len(profile1)/2,len(profile1)/2:]*profile2[len(profile2)/2,\
 	len(profile2)/2:],'--k',color='green',label='$I_1\\times I_2$')
 	plt.legend(loc='uper left')
 	plt.legend(loc=(0.80,0.70))
@@ -341,5 +342,5 @@ def save_fits(image,number_name):
 		Returns a .fits file on the folder. 
 	'''
 	pf.writeto('gal_'+str(1+number_name)+'.fits', image,  clobber=1)
-	print 'Gal', number_name+1, ' done'
+	# print 'Gal', number_name+1, ' done'
 	return
