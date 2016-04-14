@@ -16,6 +16,7 @@ import numpy as np
 from numpy import meshgrid, arange, log, sqrt, tanh, tan, arctan, arctanh, arctan2
 import matplotlib.pyplot as plt
 import scipy as sp
+from scipy.special import gammainc
 import pylab as pl
 import math
 import pyfits as pf
@@ -31,7 +32,7 @@ import sys
 Some surface brightness and routines related to it, to create disk galaxies, 
 elliptical galaxies and spiral galaxies.
 '''
-def grid(q,c,PA,gal_center=(0,0),N=4,M=4,size=255):
+def grid(q,c,PA,gal_center,N=5,M=5,size=255):
 	'''
 		Create an square meshgrid array (2D array), to create the galaixes' 
 		surface brightness.
@@ -57,10 +58,10 @@ def grid(q,c,PA,gal_center=(0,0),N=4,M=4,size=255):
 	delta=0.001
 	x,y=meshgrid(arange(-M/2,M/2,M/size), arange(-N/2,N/2,N/size))
 	x,y=rotation(PA,gal_center,x,y)
-	r=((abs(x-gal_center[1])**(c+2.0)+((abs(y-gal_center[0]))/(q))**(c+2.0))**(1.0/(c+2.0))+delta)
+	r=((abs(x-rscale(gal_center[1]))**(c+2.0)+((abs(y-rscale(gal_center[0])))/(q))**(c+2.0))**(1.0/(c+2.0))+delta)
 	return r,x,y
 
-def rscale(r_ef,N=4,size=255):
+def rscale(r_ef,N=5,size=255):
 	'''
 		A simple function to rescale the inputs parameters related to the efective 
 		radius of a given profile.
@@ -71,13 +72,13 @@ def rscale(r_ef,N=4,size=255):
 	'''
 	return r_ef*N/size
 
-def rotation(PA, gal_center,x, y):
+def rotation(PA,gal_center,x, y):
 	#convert to radians
 	t=PA*np.pi/180.
-	return ((x-gal_center[1])*np.cos(t) + (y-gal_center[0])*np.sin(t),\
-	-(x-gal_center[1])*np.sin(t) + (y-gal_center[0])*np.cos(t))
+	return ((x-rscale(gal_center[1]))*np.cos(t) + (y-rscale(gal_center[0]))*np.sin(t),\
+	-(x-rscale(gal_center[1]))*np.sin(t) + (y-rscale(gal_center[0])*np.cos(t)))
 
-def sersic_profile(In,rn,n,q,c):
+def sersic_profile(In,rn,n,q,c,gal_center):
 	'''
 		The Sersic Profile: used to create ellipticals and also 
 		spiral galaxies.
@@ -103,11 +104,22 @@ def sersic_profile(In,rn,n,q,c):
 		
 		bn 	related quantitie with the sersic index
 	'''
-	r,x,y=grid(q,c,00)
+	r,x,y=grid(q,c,-50,gal_center)
 	bn=1.9992*n-0.3271
+	# F=(In*rn**2.0*2*np.pi*n*np.exp(bn))/(bn**(2*n))*gammainc(2*n,	(0.8*r.max()/rn)**(1.0/n)	)
+	# print 'In=', In, ' F=',F
 	return In*np.exp(	-bn*(	(r/(rscale(rn))	)**(1.0/n) -1	))
 
-def disk_profile(Id,rd,nd,q,c):
+def intensity_total_flux(n,rn,Fn):
+	'''
+		Convert the given flux variable quantitie, to the half light intensity In=(rn)
+		Return the number In. 
+	'''
+	bn=1.9992*n-0.3271
+	In=((bn**2.0)*np.exp(-bn)/(rscale(rn)**2.0*2*np.pi*n))*Fn*(1./gammainc(2*n,	(rscale(1e10)*rscale(rn)/rscale(rn))**(1.0/n)	))
+	return In
+
+def disk_profile(Id,rd,nd,q,c,gal_center):
 	'''
 		Disk profile, to use with the spiral function
 		returns an image array
@@ -118,9 +130,9 @@ def disk_profile(Id,rd,nd,q,c):
 		
 		nd 	sersic index for the disk
 	'''
-	return sersic_profile(Id,rd,nd,q,c)
+	return sersic_profile(Id,rd,nd,q,c,gal_center)
 
-def bar_profile(Ib,rb,nb,q,cbar):
+def bar_profile(Ib,rb,nb,q,cbar,gal_center):
 	'''
 		Bar profile generates a square structure, something like a 
 		bar in the center. 
@@ -135,9 +147,9 @@ def bar_profile(Ib,rb,nb,q,cbar):
 		
 		nb 	sersic index for the bar
 	'''
-	return sersic_profile(Ib,rb,nb,q,cbar)
+	return sersic_profile(Ib,rb,nb,q,cbar,gal_center)
 
-def exponential_profile(Ie,re,q,c):
+def exponential_profile(Ie,re,q,c,gal_center):
 	'''
 		Exponential profile, particular case of the sersic profile
 		Returns an image array
@@ -149,9 +161,9 @@ def exponential_profile(Ie,re,q,c):
 		ne 	sersic index for the exponential: n=1
 	'''
 	ne=1.0
-	return sersic_profile(Ie,re,ne,q,c)
+	return sersic_profile(Ie,re,ne,q,c,gal_center)
 
-def bulge_profile(Ibu,rbu,nbu,q,c):
+def bulge_profile(Ibu,rbu,nbu,q,c,gal_center):
 	'''
 		Bulge profile, an elliptical structure like, in the center of the image
 		Returns an image array
@@ -160,9 +172,9 @@ def bulge_profile(Ibu,rbu,nbu,q,c):
 		rbu 	bulge half light radius
 		nbu 	sersic index for the bulge
 	'''
-	return sersic_profile(Ibu,rbu,nbu,q,c)
+	return sersic_profile(Ibu,rbu,nbu,q,c,gal_center)
 
-def tan_spiral_profile(k,p,AA,NN,phi0,q,PA):
+def tan_spiral_profile(k,p,AA,NN,phi0,q,PA,gal_center):
 	'''
 		This function, generates a tangent spiral structure
 		Returns an image array 
@@ -188,7 +200,7 @@ def tan_spiral_profile(k,p,AA,NN,phi0,q,PA):
 		create the spiral structure (spiral)
 	'''
 	c=0.0
-	r,x,y=grid(q,c,PA)
+	r,x,y=grid(q,c,PA,gal_center)
 	delta_tan=0.01
 	BB=(1.0)/(np.tanh(phi0/(2.0*NN)))
 	phi_r_tan=2.0*NN*arctan(np.exp(AA/(r**1.0+delta_tan) )/BB)
@@ -199,7 +211,7 @@ def tan_spiral_profile(k,p,AA,NN,phi0,q,PA):
 	# plot_two_profiles(spiral,I_exp)
 	return spiral
 
-def tanh_spiral_profile(k,p,AA,NN,phi0,q,PA):
+def tanh_spiral_profile(k,p,AA,NN,phi0,q,PA,gal_center):
 	'''
 		This function, generates a hyperbolic tangent spiral structure
 		Returns an image array
@@ -226,7 +238,7 @@ def tanh_spiral_profile(k,p,AA,NN,phi0,q,PA):
 		used to create the spiral structure (spiral)
 	'''
 	c=0.0
-	r,x,y=grid(q,c,PA)
+	r,x,y=grid(q,c,PA,gal_center)
 	delta_tanh=1.0
 	BB=(1.0)/(tanh(phi0/(2.0*NN)))
 	phi_r_tanh=2.0*NN*arctanh(np.exp(AA/(r**1.0+delta_tanh) )/BB)
@@ -265,9 +277,10 @@ like bulges, disks and bars.
 		
 		scth	hyperbolic tangent spiral contribution to the final galaxy intensity output
 '''
-def spiral_galaxie(nsc,In,rn,n,ec,Ie,re,sct,k,p,AA,NN,phi0,barc,Ib,rb,nb,qbar,cbar,q,c,PA):
-	return nsc*sersic_profile(In,rn,n,q,c)+ec*exponential_profile(Ie,re,q,c)+\
-	sct*tan_spiral_profile(k,p,AA,NN,phi0,q,PA)+barc*bar_profile(Ib,rb,nb,qbar,cbar)
+def spiral_galaxie(nsc,In,rn,n,ec,Ie,re,sct,k,p,AA,NN,phi0,barc,Ib,rb,nb,qbar,cbar,q,c,PA,gal_center,gal_center_ass):
+	return nsc*sersic_profile(In,rn,n,q,c,gal_center)+ec*exponential_profile(Ie,re,q,c,gal_center)+\
+	sct*(tan_spiral_profile(k,p,AA,NN,phi0,q,PA,gal_center)+0.0*tan_spiral_profile(k,p,AA,NN,phi0,q,PA,gal_center_ass))\
+	+barc*bar_profile(Ib,rb,nb,qbar,cbar,gal_center)
 
 
 ##############################################################################
@@ -280,7 +293,7 @@ def plot_save_image(image,number_name,nsc,In,rn,n,ec,Ie,re,sct,k,p,AA,NN,phi0,ba
 	ax2=fig.add_subplot(2,1,2)
 	plt.xlabel('$r$ [pixels]')
 	plt.ylabel('$I(r)$')
-	ax2.plot(image[len(image)/2,len(image)/2:])
+	ax2.plot(image[len(image)/2+1,len(image)/2:])
 	ax3=fig.add_subplot(2,2,2)
 	plt.axis('off')
 	ax3.text(0.0, 1.10, r'Galaxy ID:$'+str(1+number_name)+'$', fontsize=12)
@@ -307,10 +320,14 @@ def plot_save_image(image,number_name,nsc,In,rn,n,ec,Ie,re,sct,k,p,AA,NN,phi0,ba
 	plt.clf()
 	# return
 
-def plot_image(image):
+def plot_image(image_array):
+	'''
+		Fast way to plot an image. 
+		Return an imshow() array.
+	'''
 	fig=plt.figure()
 	ax1=fig.add_subplot(1,1,1)
-	ax1.imshow(((image))**0.2)
+	ax1.imshow(((image_array))**0.2)
 	plt.show()
 	return
 
@@ -344,3 +361,27 @@ def save_fits(image,number_name):
 	pf.writeto('gal_'+str(1+number_name)+'.fits', image,  clobber=1)
 	# print 'Gal', number_name+1, ' done'
 	return
+
+def w_value(file_name,p_value):
+	'''
+		Write on a file (line format) the needed input parameter given, of each galaxie. 
+
+		Save a file.dat on the folder.
+	'''
+	with open(file_name+'_values.dat', 'a') as f:
+			f.write(str(p_value))
+			f.write(' ')
+
+def w_values(file_name,p_value):
+	'''
+		Write on a file the input parameters given, for each galaxies. Each galaxy it 
+		is a columm in the file.
+
+		Save a file.dat on the folder.
+	'''
+	for i in p_value:
+		with open(file_name+'_values.dat', 'a') as f:
+			f.write(str(i))
+			f.write(' ')
+	with open(file_name+'_values.dat', 'a') as f:
+		f.write('\n')
