@@ -55,30 +55,15 @@ components like bulges, disks and bars.\
 		way simply calling a function.\
 """
 
-def create_galaxies(path):
+def create_galaxies(bd,nn,rn,Re,L_T,c,qb,Qd,SPIRAL,path):
 	plt.gray()
 	psf=pf.getdata('psf_final.fits')
-	''' Sersic Quantitites'''
-	rn=10.0
-	L_T=3.0e5
-	Re=[3.0*rn]
-	# bd=np.arange(0.05,10.05,0.49,)
-	bd=[0.5]
-	nn=[np.arange(1.80,7.00,0.4),'n']
-	# nn=[[5.0],'n']
 	nsc=1.0
 	ec=1.0
 	spo=2.0
-	''' General Ellipsis Quantities'''
-	qb=1.0
-	# qd=1.0
-	Q=[1.0]
-	# Q=np.arange(0.05,1.05,0.05)
-	c=0.0
 	PA=0.0
 	number_name=1
 	gal_center=(0.0,0.0) #for all components.
-	SPIRAL=False
 	''' Make the galaxies.'''
 	if SPIRAL is True:
 		''' Spiral Quantities'''
@@ -129,12 +114,14 @@ def create_galaxies(path):
 						number_name=number_name+1
 		# return LSP
 	else:
+		SPIRAL=False
+		"""Set to unity the spiral input parameters, it is for convenience."""
 		NN=1.0
 		phi0=1.0
 		AA=1.0
 		p=1.0
 		k=1.0
-		for qd in Q:
+		for qd in Qd:
 			for n in nn[0]:
 				for re in Re:
 					for BD in bd:
@@ -155,14 +142,14 @@ def create_galaxies(path):
 						plot_save_gal(gal,sersic,disk,spiral,n,nn,In,rn,Ie,\
 							re,qb,qd,c,PA,BT,BD,L_BT/L_T,L_DT/L_T,L_T/L_T,\
 							nsc,ec,k,p,AA,NN,phi0,number_name,path,\
-							SPIRAL=False,DISK=True)
+							SPIRAL,DISK=True)
 						save_fits(gal,number_name,None,path)
 						
 						save_fits(polarim(gal)[:150],number_name,\
 							'gal_polar_'+str(number_name),path)
 						
 						plot_grad(gal,sersic,disk,spiral,number_name,\
-							path,SPIRAL=False)
+							path,SPIRAL)
 						
 						w_values('gal',('gal_'+str(number_name),n,In,rn,\
 							Ie,re,mu_n,mean_mu_n,mu_e,mean_mu_e,qb,qd,c,\
@@ -273,7 +260,7 @@ def runInParallel(*fns):
 	for p in proc:
 		p.join()
 
-def callPlots(mfmtk_cat,glm_cat,path,varss):
+def callPlots(mfmtk_cat,glm_cat,path,varss,cruzed_values=True):
 	'''Plot many quantities with some configuration.
 	   
 	   varss example:
@@ -290,7 +277,7 @@ def callPlots(mfmtk_cat,glm_cat,path,varss):
 				['R10'],['R20'],['R30'],['R40'],['R50'],['R60'],['R70'],\
 				['R80'],['R90'],['psi'],['sigma_psi'],['nFit1D'],\
 				['nFit2D']]
-	labels=[varss[0][1],\
+	labels=[varss[0][1][0],\
 	        ['C_1','C_2','H','G','A_1','A_3','S_1','S_3','M_{20}',\
 	        'R_{n_{1D}}','R_{n_{2D}}','I_{n_{1D}}','I_{n_{2D}}',\
 	        'R_{10}','R_{20}','R_{30}','R_{40}','R_{50}','R_{60}',\
@@ -312,20 +299,40 @@ def callPlots(mfmtk_cat,glm_cat,path,varss):
 		plots(glm_cat.param_selection(gml_par,column_dict_glm),\
 			  mfmtk_cat.param_selection(mfmtk_pars[i],column_dict),\
 			  [labels[0],labels[1][i]],plot_config,path)
+	'''If we want to study how the measuerd parameters correlates each other, 
+	lets plot they values in pairs.
+	'''
+	if cruzed_values is True:
+		print '-------------- PLOTTING CROSSED PARAMETERS --------------'
+		s=1
+		for j in range(len(mfmtk_pars)):
+			for k in range(s,len(mfmtk_pars)):#do not repeat the plots!
+				plots(mfmtk_cat.param_selection(mfmtk_pars[j],column_dict),\
+					mfmtk_cat.param_selection(mfmtk_pars[k],column_dict),\
+					[labels[1][j],labels[1][k]],plot_config,path)
+				# print [labels[1][j],labels[1][k]]
+			s=j+2
 	return 'Done!'
 
 start_time0 = time.time()
-path='/home/lucatelli/galaxy_maker/data_galaxies/\
-convolved_noise_2/n_var/BD_05/'
+path='/home/lucatelli/galaxy_maker/data_galaxies/convolved_noise_2/n_var/BD_8/'
 path2=path+'n2eff/'
 path3=path+'n1eff/'
-
+nn=[np.arange(1.80,7.00,2.0),'n']
+bd=[3.0]
+rn=10
+L_T=3.0e5
+Re=[3.0*rn]
+c=0
+qb=1.0
+Qd=[1.0]
+SPIRAL=False
 #########################################################################
 ######################    		STEP #1			  #######################
 #########################################################################
 print '-------------- PREPARING TO CREATE THE GALAXIES --------------'
 '''Create a set of synthetic galaxies.'''
-nber_galaxies=create_galaxies(path)
+nber_galaxies=create_galaxies(bd,nn,rn,Re,L_T,c,qb,Qd,SPIRAL,path)
 print '-------------- PREPARING TO CALL THE MORFOMETRYKA CODE --------------'
 '''Call the morfometryka code.'''
 mfmtk1(path,nber_galaxies)
@@ -342,7 +349,7 @@ mfmtk_cat= catalog(path=path+'fits/gal.mfmtk')
 glm_cat= catalog(path=path+'gal_values.dat')
 os.chdir('/home/lucatelli/galaxy_maker/')
 print '-------------- PREPARING TO PLOT --------------'
-varss=[	[['BD'],['\\xi_{BD}']]	,['n',['n'],'n']]
+varss=[	[['n'],['n']]	,['BD',['BD'],'\\xi_{BD}']]
 callPlots(mfmtk_cat,glm_cat,path,varss)
 #########################################################################
 ######################    		STEP #2			  #######################
@@ -353,8 +360,8 @@ callPlots(mfmtk_cat,glm_cat,path,varss)
 '''
 print '-------------- LOADING EFFECTIVE SERSIC INDEX --------------'
 nfit2D=[mfmtk_cat.param_selection(['nFit2D'],column_dict),'n2D']
-what_n=['n2D','$n_{	2D}$']
-print '-- PREPARTING TO MAKE NEW GALAXIES WITH THE EFFECTIVE SERSIC INDEX --'
+what_n=['n','$n$']
+print '-- PREPARING TO MAKE NEW GALAXIES WITH THE EFFECTIVE SERSIC INDEX --'
 nber_galaxies=create_gal_eff_n(nfit2D,path2)
 print '-------------- PREPARING TO CALL THE MORFOMETRYKA CODE --------------'
 mfmtk1(path2,nber_galaxies)
@@ -417,7 +424,7 @@ for i in range(len(mfmtk_pars)):
 '''
 print '------------ LOADING EFFECTIVE SERSIC INDEX ------------'
 nfit1D=[mfmtk_cat.param_selection(['nFit1D'],column_dict),'n1D']
-print '-- PREPARTING TO MAKE NEW GALAXIES WITH THE EFFECTIVE SERSIC INDEX --'
+print '-- PREPARING TO MAKE NEW GALAXIES WITH THE EFFECTIVE SERSIC INDEX --'
 nber_galaxies=create_gal_eff_n(nfit1D,path3)
 print '-------------- PREPARING TO CALL THE MORFOMETRYKA CODE --------------'
 mfmtk1(path3,nber_galaxies)
