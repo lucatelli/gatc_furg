@@ -348,7 +348,7 @@ def plot_two_profiles(profile1,profile2):
 	plt.grid(True)
 	plt.xlabel('$r$ [px]')
 	plt.ylabel('$I(r)$')
-	# plt.show()
+	plt.show()
 	plt.savefig('gal_'+str(1+number_name)+'.jpg',dpi=200)
 	plt.clf()
 	return
